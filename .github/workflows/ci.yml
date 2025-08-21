@@ -32,4 +32,6 @@ jobs:
         with:
           context: ./app
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/validator-sim:dev
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/validator-sim:dev
+            ghcr.io/${{ github.repository_owner }}/validator-sim:${{ github.sha }}
