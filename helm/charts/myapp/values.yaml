@@ -1,6 +1,6 @@
 image:
-  repository: validator-sim
-  tag: local
+  repository: ghcr.io/oelnajmi/validator-sim
+  tag: dev
   pullPolicy: IfNotPresent
 
 replicaCount: 1
