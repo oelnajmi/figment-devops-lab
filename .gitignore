@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node/Other (none now, but safe)
+node_modules/
+
+# Terraform (for later, if you add it)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# k8s and Helm artifacts
+*.tgz
+
+# OS
+.DS_Store

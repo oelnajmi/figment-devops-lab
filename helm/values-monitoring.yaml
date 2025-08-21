@@ -1,0 +1,13 @@
+grafana:
+  ingress:
+    enabled: true
+    # k3d ships Traefik; use it as our ingress class
+    annotations:
+      kubernetes.io/ingress.class: "traefik"
+    hosts:
+      - grafana.localtest.me
+  adminPassword: admin   # demo only; change later
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: "15s"

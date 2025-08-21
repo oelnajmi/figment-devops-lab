@@ -1,0 +1,22 @@
+image:
+  repository: validator-sim
+  tag: local
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+ingress:
+  enabled: true
+  # We'll use Traefik (pre-installed by k3d) and a host that resolves to 127.0.0.1 automatically.
+  className: traefik
+  host: myapp.localtest.me
