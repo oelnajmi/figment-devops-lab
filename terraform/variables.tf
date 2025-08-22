@@ -7,7 +7,7 @@ variable "image_repo" {
 variable "image_tag" {
   description = "Image tag (e.g., dev or a specific commit SHA)"
   type        = string
-  default     = "dev"
+  default = "ee1a37edf3be7778605517bb79ad141b43cc4f6b"
 }
 
 variable "kube_prom_chart_version" {
