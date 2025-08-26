@@ -40,3 +40,66 @@ prometheus: ## Port-forward Prometheus (runs until Ctrl+C)
 
 grafana: ## Print Grafana URL
 	@echo "Open http://grafana.localtest.me:8080 (admin/admin unless changed)"
+
+##### ───────────────────────────
+##### EKS demo shortcuts
+##### Prereqs: AWS creds configured; TF state bucket/table already exist.
+##### ───────────────────────────
+
+# Tunables (override with: make PORT=8081 …)
+PORT       ?= 8080
+NAMESPACE  ?= default
+
+# Use Terraform's -chdir to avoid cd juggling
+TF_EKS_DIR := infra/eks
+TF_APP_DIR := terraform
+
+.PHONY: cluster-up cluster-down kubeconfig cluster-status app-up app-down port-forward demo-start demo-stop
+
+## Create/Update the EKS cluster (public subnets, 1× micro node)
+cluster-up:
+	terraform -chdir=$(TF_EKS_DIR) init
+	terraform -chdir=$(TF_EKS_DIR) apply -auto-approve
+	$(MAKE) kubeconfig
+	# Scale CoreDNS to 1 on micro nodes to free a pod slot (safe for demos)
+	kubectl -n kube-system scale deploy coredns --replicas=1 || true
+	$(MAKE) cluster-status
+	@echo "Tip: On t3.micro, scale CoreDNS to 1 so your app can schedule: \n  kubectl -n kube-system scale deploy coredns --replicas=1"
+
+## Destroy the EKS cluster + VPC (stops control-plane billing)
+cluster-down:
+	# Optional: remove the app first to keep state tidy (ok to skip)
+	- terraform -chdir=$(TF_APP_DIR) destroy -target=helm_release.myapp -auto-approve
+	terraform -chdir=$(TF_EKS_DIR) destroy -auto-approve
+
+## Update kubeconfig to point kubectl at the current EKS cluster
+kubeconfig:
+	@CLUSTER_NAME=$$(terraform -chdir=$(TF_EKS_DIR) output -raw cluster_name); \
+	REGION=$$(terraform -chdir=$(TF_EKS_DIR) output -raw cluster_region); \
+	aws eks update-kubeconfig --name $$CLUSTER_NAME --region $$REGION
+
+## Quick sanity: show nodes and system pods
+cluster-status:
+	kubectl get nodes
+	kubectl get pods -A
+
+## Install/upgrade the myapp Helm release into the cluster
+app-up:
+	terraform -chdir=$(TF_APP_DIR) init
+	terraform -chdir=$(TF_APP_DIR) apply -target=helm_release.myapp -auto-approve
+	kubectl -n $(NAMESPACE) get deploy,svc,pods -l app.kubernetes.io/name=myapp -o wide
+
+## Remove the myapp Helm release from the cluster
+app-down:
+	terraform -chdir=$(TF_APP_DIR) destroy -target=helm_release.myapp -auto-approve || true
+
+## Port-forward myapp Service to localhost:$(PORT)
+port-forward:
+	kubectl -n $(NAMESPACE) port-forward svc/myapp $(PORT):80
+
+## One-shot demo: create cluster, deploy app, port-forward
+demo-start: cluster-up app-up port-forward
+
+## One-shot teardown: remove app, destroy cluster
+demo-stop: app-down cluster-down
+
